@@ -1,6 +1,8 @@
 import asyncio
 import json
+import logging
 import os
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -10,8 +12,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
+# Loggingni yoqish
+logging.basicConfig(level=logging.INFO)
+
 # --- BOT VA ADMIN SOZLAMALARI ---
-BOT_TOKEN = "8950169647:AAE20btjvnl23ksOS83RKd13UkNPl9vJwnk"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8950169647:AAE20btjvnl23ksOS83RKd13UkNPl9vJwnk")
 ADMIN_ID = 5893335951  # Telegram ID ingiz
 
 # Majburiy obuna kanallari
@@ -101,7 +106,6 @@ class BroadcastState(StatesGroup):
 async def start_cmd(message: types.Message):
     save_user(message.from_user.id)
 
-    # Foydalanuvchining ismini olish
     user_name = message.from_user.first_name
 
     if not await check_subscription(message.from_user.id):
@@ -151,7 +155,6 @@ async def kanal_cmd(message: types.Message):
 async def help_cmd(message: types.Message):
     save_user(message.from_user.id)
 
-    # Kanalga o'tish tugmasi
     kb = InlineKeyboardBuilder()
     kb.row(types.InlineKeyboardButton(text="🎬 Kanalga o'tish", url="https://t.me/filmkodlari_kanal"))
 
@@ -191,7 +194,6 @@ async def show_stats(message: types.Message):
 
     for user_id in users:
         try:
-            # Foydalanuvchi botni bloklaganini tekshirish
             await bot.send_chat_action(chat_id=user_id, action="typing")
             active_count += 1
         except Exception:
@@ -252,12 +254,11 @@ async def send_broadcast(message: types.Message, state: FSMContext):
     )
 
 
-# 8. KINO KODINI QABUL QILISH (Video ostida faqat kanallar tugmalari chiqadi)
+# 8. KINO KODINI QABUL QILISH
 @dp.message(F.text)
 async def get_movie_by_code(message: types.Message):
     save_user(message.from_user.id)
 
-    # Kanal obunasini tekshirish
     if not await check_subscription(message.from_user.id):
         await message.answer(
             "⚠️ Kino ko'rishdan oldin kanallarga obuna bo'lishingiz kerak:",
@@ -310,10 +311,26 @@ async def get_movie_by_code(message: types.Message):
         )
 
 
+# --- RENDER PORT TIMEOUT XATOSINI YO'QOTISH UCHUN DUMMY WEBSERVER ---
+async def handle(request):
+    return web.Response(text="Ahliddin - KinoBot is active and running 24/7!")
+
+
 async def main():
+    # 1. Render kutayotgan Web Serverni yaratish
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.environ.get("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    # 2. Telegram Bot Polling
     print("Ahliddin\n🎬 KinoBot ishga tushdi!")
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main())    
