@@ -254,6 +254,31 @@ async def send_broadcast(message: types.Message, state: FSMContext):
     )
 
 
+# --- ADMIN VIDEO YUBORGANIDA FILE_ID VA JSON FORMATINI CHIQARISH ---
+@dp.message(F.video, F.from_user.id == ADMIN_ID)
+async def get_video_file_id(message: types.Message):
+    file_id = message.video.file_id
+    
+    response_text = (
+        f"📹 **Video File ID:**\n`{file_id}`\n\n"
+        f"📁 **file_ids.json uchun namuna:**\n"
+        f"```json\n"
+        f'"{file_id[:5]}": "{file_id}"\n'
+        f"```\n"
+        f"📝 **kinolar_info.json uchun namuna:**\n"
+        f"```json\n"
+        f'"{file_id[:5]}": {{\n'
+        f'    "nomi": "Kino nomi",\n'
+        f'    "janri": "Janr",\n'
+        f'    "yili": "2026",\n'
+        f'    "sifat": "720p",\n'
+        f'    "til": "O\'zbek tilida"\n'
+        f'}}\n'
+        f"```"
+    )
+    await message.reply(response_text)
+
+
 # 8. KINO KODINI QABUL QILISH
 @dp.message(F.text)
 async def get_movie_by_code(message: types.Message):
@@ -317,7 +342,6 @@ async def handle(request):
 
 
 async def main():
-    # 1. Render kutayotgan Web Serverni yaratish
     app = web.Application()
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
@@ -327,10 +351,9 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    # 2. Telegram Bot Polling
     print("Ahliddin\n🎬 KinoBot ishga tushdi!")
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())    
+    asyncio.run(main())
